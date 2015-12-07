@@ -15,7 +15,7 @@ namespace Server
 
     public sealed class AsyncSocketListener : IAsyncSocketListener
     {
-        private const ushort Port = 8080;
+        private const ushort Port = 8889;
         private const ushort Limit = 250;
 
         private static readonly IAsyncSocketListener instance = new AsyncSocketListener();
