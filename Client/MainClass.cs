@@ -23,9 +23,10 @@ namespace Client
             client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
             client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 
-            Thread thread = new Thread(new ThreadStart(client.StartClient));
-            thread.Name = "Herr Orhan";
-            thread.Start();
+            //Thread thread = new Thread(new ThreadStart(client.StartClient));
+            //thread.Start();
+
+            client.StartClient();
 
             string message = string.Empty;
 
@@ -39,13 +40,14 @@ namespace Client
                     client.Send(message, false);
                     client.Receive();
                 }
+                message = String.Empty;
             }
         }
 
         private static void ConnectedToServer(IAsyncClient a)
         {
-            a.Send("Hello, I'm the client.", false);
-            a.Receive();
+            //a.Send("Hello, I'm the client.", false);
+            //a.Receive();
         }
 
         private static void ServerMessageReceived(IAsyncClient a, String msg)

@@ -18,16 +18,15 @@ namespace Server
         {
             Utils.SetTitle("Server");
 
-            /* I use this to test my code on one machine. */
-            new Thread(new ThreadStart(AsyncSocketListener.Instance.StartListening)).Start();
-
             AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler (ClientMessageReceived);
             AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(ServerMessageSubmitted);
+
+            AsyncSocketListener.Instance.StartListening();
         }
 
         private static void ClientMessageReceived(int id, String msg)
         {
-            AsyncSocketListener.Instance.Send(id, msg.Replace("client", "server"), true);
+            AsyncSocketListener.Instance.Send(id, msg.Replace("client", "server"), false);
             Console.WriteLine("Server get Message from client. {0} ", msg);
         }
 
