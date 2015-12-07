@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Common;
 
-namespace Server
+namespace Client
 {
-    class Program
+    public static class CMain
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
+            CInit.InitConsole("Client");
         }
     }
 }
