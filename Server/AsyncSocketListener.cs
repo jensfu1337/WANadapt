@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Server
 {
@@ -98,7 +97,7 @@ namespace Server
 
                     state = new StateObject(((Socket)result.AsyncState).EndAccept(result), id);
                     this.clients.Add(id, state);
-                    Console.WriteLine("Client connected. Get Id " + id);
+                    Console.WriteLine("Client connected.\n-->IP: {0}\n-->ID: {1}\n", state.Listener.LocalEndPoint, id);
                 }
 
                 state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
