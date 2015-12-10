@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Common;
 using System.Threading;
+using System.Net;
+using System.Net.Sockets;
 
 /// <summary>
 /// Source: http://codereview.stackexchange.com/questions/24758/tcp-async-socket-server-client-communication
@@ -23,13 +25,53 @@ namespace Client
             client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
             client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 
-            //Thread thread = new Thread(new ThreadStart(client.StartClient));
-            //thread.Start();
+            string message;
+            IPAddress ip;
+            IPEndPoint endpoint;
+            TcpClient tclient;
+            IPHostEntry host;
 
-            client.StartClient();
+            Console.WriteLine("Enter IPv4 address. Leave empty to use local IPv4.\n\n");
 
-            string message = string.Empty;
+            do
+            {
+                message = string.Empty;
+                ip = null;
+                endpoint = null;
+                tclient = null;
+                host = null;
 
+                Console.WriteLine("> ");
+                message = Console.ReadLine();
+
+                if (message.Length == 0)
+                {
+                    host = Dns.GetHostEntry(Dns.GetHostName());
+                }
+                else
+                {
+                    host = Dns.GetHostEntry(message);
+                }
+
+                ip = host.AddressList[1];
+                endpoint = new IPEndPoint(ip, client.Port);
+                tclient = new TcpClient();
+
+                try
+                {
+                    tclient.Connect(endpoint);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            } while (!tclient.Connected);
+
+            tclient.Close();
+
+            client.StartClient(endpoint);
+
+            
             while (message.ToUpper() != "q")
             {
                 Console.WriteLine("Write to server: ");
@@ -44,15 +86,14 @@ namespace Client
             }
         }
 
-        private static void ConnectedToServer(IAsyncClient a)
+        private static void ConnectedToServer(IAsyncClient a, IPEndPoint e)
         {
-            //a.Send("Hello, I'm the client.", false);
-            //a.Receive();
+            Console.WriteLine("\nConnected to {0}:{1}...\n\n", e.Address, e.Port);
         }
 
         private static void ServerMessageReceived(IAsyncClient a, String msg)
         {
-            Console.WriteLine("Client get Message from server. {0} ", msg);
+            Console.Write("Client get Message from server. {0} ", msg);
         }
 
         private static void ClientMessageSubmitted(IAsyncClient a, bool close)
