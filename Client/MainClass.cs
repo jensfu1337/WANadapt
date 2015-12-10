@@ -74,6 +74,7 @@ namespace Client
             
             while (message.ToUpper() != "q")
             {
+
                 Console.Write("Client > ");
                 message = Console.ReadLine();
 
@@ -82,7 +83,7 @@ namespace Client
                     client.Send(message, false);
                     client.Receive();
                 }
-                message = String.Empty;
+
             }
         }
 
@@ -93,7 +94,7 @@ namespace Client
 
         private static void ServerMessageReceived(IAsyncClient a, String msg)
         {
-            Console.WriteLine("Server > {0} ", msg);
+            Console.WriteLine("\nServer > {0} ", msg);
         }
 
         private static void ClientMessageSubmitted(IAsyncClient a, bool close)
