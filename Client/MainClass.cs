@@ -1,17 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Common;
-using System.Threading;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.NetworkInformation;
-
-/// <summary>
-/// Source: http://codereview.stackexchange.com/questions/24758/tcp-async-socket-server-client-communication
-/// </summary>
 
 namespace Client
 {
