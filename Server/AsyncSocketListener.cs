@@ -50,6 +50,7 @@ namespace Server
                 {
                     listener.Bind(endpoint);
                     listener.Listen(Limit);
+
                     while (true)
                     {
                         this.mre.Reset();
@@ -114,6 +115,12 @@ namespace Server
 
             try
             {
+                if (!this.IsConnected(state.Id))
+                {
+                    Close(state.Id);
+                    return;
+                }
+
                 var receive = state.Listener.EndReceive(result);
 
                 if (receive > 0)
@@ -135,11 +142,13 @@ namespace Server
                     }
 
                     state.Reset();
+
+                    state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
                 }
             }
-            catch (SocketException)
+            catch (SocketException se)
             {
-                // TODO:
+                Console.WriteLine(se.Message);
             }
         }
         #endregion
@@ -167,13 +176,13 @@ namespace Server
                 state.Close = close;
                 state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, this.SendCallback, state);
             }
-            catch (SocketException)
+            catch (SocketException se)
             {
-                // TODO:
+                Console.WriteLine(se.Message);
             }
-            catch (ArgumentException)
+            catch (ArgumentException ae)
             {
-                // TODO:
+                Console.WriteLine(ae.Message);
             }
         }
 
@@ -185,13 +194,13 @@ namespace Server
             {
                 state.Listener.EndSend(result);
             }
-            catch (SocketException)
+            catch (SocketException se)
             {
-                // TODO:
+                Console.WriteLine(se.Message);
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ode)
             {
-                // TODO:
+                Console.WriteLine(ode.Message);
             }
             finally
             {
@@ -211,7 +220,7 @@ namespace Server
 
             if (state == null)
             {
-                throw new Exception("Client does not exist.");
+                Console.WriteLine("Client {0} does not exist.", state.Id);
             }
 
             try
@@ -219,9 +228,9 @@ namespace Server
                 state.Listener.Shutdown(SocketShutdown.Both);
                 state.Listener.Close();
             }
-            catch (SocketException)
+            catch (SocketException se)
             {
-                // TODO:
+                Console.WriteLine(se.Message);
             }
             finally
             {

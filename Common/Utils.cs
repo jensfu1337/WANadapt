@@ -20,7 +20,6 @@ namespace Common
                 Console.Write("-");
 
             Console.WriteLine();
-            Console.WriteLine();
         }
 
         //The commands for interaction between the server and the client

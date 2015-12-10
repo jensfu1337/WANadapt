@@ -21,19 +21,27 @@ namespace Server
             AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler (ClientMessageReceived);
             AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(ServerMessageSubmitted);
 
-            AsyncSocketListener.Instance.StartListening();
+            Thread thread = new Thread(new ThreadStart(AsyncSocketListener.Instance.StartListening));
+            thread.IsBackground = true;
+            thread.Start();
+
+            Console.WriteLine("Server started. Press any key to stop\n\n");
+            
+            Console.Read();
         }
 
         private static void ClientMessageReceived(int id, String msg)
         {
             AsyncSocketListener.Instance.Send(id, msg.Replace("client", "server"), false);
-            Console.WriteLine("Server get Message from client. {0} ", msg);
+            Console.WriteLine("Client {0} > ", msg);
         }
 
         private static void ServerMessageSubmitted(int id, bool close)
         {
             if (close)
+            {
                 AsyncSocketListener.Instance.Close(id);
+            }
         }
     }
 }
