@@ -7,6 +7,7 @@ using Common;
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.NetworkInformation;
 
 /// <summary>
 /// Source: http://codereview.stackexchange.com/questions/24758/tcp-async-socket-server-client-communication
@@ -27,9 +28,9 @@ namespace Client
 
             string message;
             IPAddress ip;
-            IPEndPoint endpoint;
-            TcpClient tclient;
             IPHostEntry host;
+            Ping ping = new Ping();
+            PingReply reply;
 
             Console.WriteLine("Enter IPv4 address. Leave empty to use local IPv4.\n\n");
 
@@ -37,9 +38,8 @@ namespace Client
             {
                 message = string.Empty;
                 ip = null;
-                endpoint = null;
-                tclient = null;
                 host = null;
+                reply = null;
 
                 Console.WriteLine("> ");
                 message = Console.ReadLine();
@@ -54,22 +54,11 @@ namespace Client
                 }
 
                 ip = host.AddressList[1];
-                endpoint = new IPEndPoint(ip, client.Port);
-                tclient = new TcpClient();
+                reply = ping.Send(ip, 3000);
 
-                try
-                {
-                    tclient.Connect(endpoint);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            } while (!tclient.Connected);
+            } while (reply.Status == IPStatus.Success);
 
-            tclient.Close();
-
-            client.StartClient(endpoint);
+            client.StartClient(new IPEndPoint(ip, client.Port));
 
             
             while (message.ToUpper() != "q")
