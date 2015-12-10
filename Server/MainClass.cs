@@ -33,7 +33,7 @@ namespace Server
         private static void ClientMessageReceived(int id, String msg)
         {
             AsyncSocketListener.Instance.Send(id, msg.Replace("client", "server"), false);
-            Console.WriteLine("Client {0} > ", msg);
+            Console.WriteLine("Client {0} > {1}", id, msg);
         }
 
         private static void ServerMessageSubmitted(int id, bool close)
