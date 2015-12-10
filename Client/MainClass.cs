@@ -31,8 +31,9 @@ namespace Client
             IPHostEntry host;
             Ping ping = new Ping();
             PingReply reply;
+            bool hostFound = false;
 
-            Console.WriteLine("Enter IPv4 address. Leave empty to use local IPv4.\n\n");
+            Console.WriteLine("Enter IPv4 address. Leave empty to use local IPv4.\n");
 
             do
             {
@@ -41,29 +42,39 @@ namespace Client
                 host = null;
                 reply = null;
 
-                Console.WriteLine("> ");
+                Console.Write("> ");
                 message = Console.ReadLine();
 
                 if (message.Length == 0)
                 {
                     host = Dns.GetHostEntry(Dns.GetHostName());
+                    ip = host.AddressList[1];
                 }
                 else
                 {
-                    host = Dns.GetHostEntry(message);
+                    try
+                    {
+                        ip = IPAddress.Parse(message);
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Invalid IP address entered...");
+                        continue;
+                    }
                 }
-
-                ip = host.AddressList[1];
+                                
                 reply = ping.Send(ip, 3000);
+                hostFound = (reply.Status == IPStatus.Success);
+            }
+            while (!hostFound);
 
-            } while (reply.Status == IPStatus.Success);
-
+            message = String.Empty;
             client.StartClient(new IPEndPoint(ip, client.Port));
 
             
             while (message.ToUpper() != "q")
             {
-                Console.WriteLine("Write to server: ");
+                Console.Write("Client > ");
                 message = Console.ReadLine();
 
                 if (message.Length > 0)
@@ -82,7 +93,7 @@ namespace Client
 
         private static void ServerMessageReceived(IAsyncClient a, String msg)
         {
-            Console.Write("Client get Message from server. {0} ", msg);
+            Console.WriteLine("Server > {0} ", msg);
         }
 
         private static void ClientMessageSubmitted(IAsyncClient a, bool close)
