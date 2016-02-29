@@ -9,7 +9,7 @@ namespace Client
     {
         public static void Main(string[] args)
         {
-            Utils.SetTitle("Client");
+            Utils.SetConsoleTitle("Client");
 
             AsyncClient client = new AsyncClient();
             client.Connected += new ConnectedHandler(ConnectedToServer);
@@ -22,8 +22,10 @@ namespace Client
             Ping ping = new Ping();
             PingReply reply;
             bool hostFound = false;
+            
+            Console.Write(string.Join<IPAddress>("\n", CheckIP.GetLocalClassDRangeIPs()));
 
-            Console.WriteLine("Enter IPv4 address. Leave empty to use local IPv4.\n");
+            Console.WriteLine("\n\nEnter IPv4 address. Leave empty to use local IPv4.\n");
 
             do
             {

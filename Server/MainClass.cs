@@ -8,7 +8,7 @@ namespace Server
     {
         public static void Main(string[] args)
         {
-            Utils.SetTitle("Server");
+            Utils.SetConsoleTitle("Server");
 
             AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler (ClientMessageReceived);
             AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(ServerMessageSubmitted);

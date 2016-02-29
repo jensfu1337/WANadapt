@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Common
 {
     public static class Utils
     {
-        public static void SetTitle(string title)
+        public static void SetConsoleTitle(string title)
         {
             if (title.Length < 1)
                 return;
@@ -31,6 +35,13 @@ namespace Common
             List,
             //Empty
             Null
+        }
+
+        public static IPAddress [] GetLanIPs()
+        {
+
+            // return addresslist of local host
+            return Dns.GetHostEntry(Dns.GetHostName()).AddressList;
         }
     }
 }
