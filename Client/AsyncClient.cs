@@ -8,6 +8,7 @@ using System.Threading;
 namespace Client
 {
     public delegate void ConnectedHandler(IAsyncClient a, IPEndPoint e);
+    public delegate void DisconnectedHandler(IAsyncClient a, IPEndPoint e);
     public delegate void ClientMessageReceivedHandler(IAsyncClient a, string msg);
     public delegate void ClientMessageSubmittedHandler(IAsyncClient a, bool close);
 
@@ -31,6 +32,7 @@ namespace Client
         private readonly ManualResetEvent received = new ManualResetEvent(false);
 
         public event ConnectedHandler Connected;
+        public event DisconnectedHandler Disconnected;
         public event ClientMessageReceivedHandler MessageReceived;
         public event ClientMessageSubmittedHandler MessageSubmitted;
 
@@ -59,9 +61,23 @@ namespace Client
             }
         }
 
-        public bool IsConnected()
+        private bool IsConnected()
         {
             return !(this.listener.Poll(1000, SelectMode.SelectRead) && this.listener.Available == 0);
+        }
+
+        public bool IsConnectionValid()
+        {
+            if (!IsConnected())
+            {
+                if (this.Disconnected != null)
+                {
+                    Disconnected(this, endpoint);
+                    this.Dispose();
+                }
+                return false;
+            }
+            return true;
         }
 
         private void OnConnectCallback(IAsyncResult result)
@@ -75,6 +91,10 @@ namespace Client
             }
             catch (SocketException)
             {
+                Console.WriteLine("Could not connect to {0}\nWaiting 1000ms...\n", endpoint.Address);
+
+                Thread.Sleep(1000);
+                this.listener.BeginConnect(endpoint, this.OnConnectCallback, this.listener);
             }
         }
 
@@ -83,11 +103,9 @@ namespace Client
         {
             var state = new StateObject(this.listener);
 
-            if (!this.IsConnected())
-            {
-                throw new Exception("Destination socket is not connected.");
-            }
-
+            if (!this.IsConnectionValid())
+                return;
+            
             state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
         }
 
@@ -123,10 +141,8 @@ namespace Client
         #region Send data
         public void Send(string msg, bool close)
         {
-            if (!this.IsConnected())
-            {
-                throw new Exception("Destination socket is not connected.");
-            }
+            if (!this.IsConnectionValid())
+                return;
 
             var response = Encoding.UTF8.GetBytes(msg);
 
@@ -162,15 +178,18 @@ namespace Client
         }
         #endregion
 
+        private void RaiseDisconnect()
+        {
+
+        }
+
         private void Close()
         {
             try
             {
                 if (!this.IsConnected())
-                {
                     return;
-                }
-
+                
                 this.listener.Shutdown(SocketShutdown.Both);
                 this.listener.Close();
             }
