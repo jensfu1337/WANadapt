@@ -23,7 +23,6 @@ namespace Server
         private readonly IDictionary<int, IStateObject> clients = new Dictionary<int, IStateObject>();
 
         public event MessageReceivedHandler MessageReceived;
-
         public event MessageSubmittedHandler MessageSubmitted;
 
         private AsyncSocketListener()
@@ -75,7 +74,7 @@ namespace Server
         /* Checks if the socket is connected. */
         public bool IsConnected(int id)
         {
-            var state = this.GetClient(id);
+            IStateObject state = this.GetClient(id);
 
             return !(state.Listener.Poll(1000, SelectMode.SelectRead) && state.Listener.Available == 0);
         }
