@@ -1,27 +1,27 @@
 ﻿using System;
 using Common;
 using System.Net;
-using System.Net.NetworkInformation;
+using System.Collections.Generic;
 
 namespace Client
 {
     class MainClass
     {
+        private static AsyncClient client;
         public static void Main(string[] args)
         {
             Utils.SetConsoleTitle("Client");
+            
+            List<IPAddress> localIPs = IPHelper.GetLocalClassDRangeIPs();
+            string locIPsOutput = String.Join<IPAddress>("\n", localIPs);
 
-            // Create client object and set eventhandler
-            AsyncClient client = new AsyncClient();
-            client.Connected += new ConnectedHandler(ConnectedToServer);
-            client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
-            client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
+            Console.WriteLine("List with available local IPs:");
+            Console.WriteLine(locIPsOutput);
+            Console.WriteLine("\n\nEnter IPv4 address. Leave empty to use local IPv4.\n");
 
             // Used to find server and process messages
             string message;
             bool hostFound = false;
-
-            Console.WriteLine("\n\nEnter IPv4 address. Leave empty to use local IPv4.\n");
 
             do
             {
@@ -37,7 +37,9 @@ namespace Client
             }
             while (!hostFound);
 
-            client.StartClient(new IPEndPoint(IPAddress.Parse(message), client.Port));
+            // Initialize and start client
+            InitClient();
+            StartClient(message);
             
             while (message.ToUpper() != "q")
             {
@@ -52,6 +54,23 @@ namespace Client
                 }
 
             }
+        }
+
+        private static void InitClient()
+        {
+            // Create client object and set eventhandler
+            client = new AsyncClient();
+            client.Connected += new ConnectedHandler(ConnectedToServer);
+            client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
+            client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
+        }
+
+        private static void StartClient(string ipAddress)
+        {
+            var connectIP = IPAddress.Parse(ipAddress);
+            var endPoint = new IPEndPoint(connectIP, client.Port);
+
+            client.StartClient(endPoint);
         }
 
         private static void ConnectedToServer(IAsyncClient a, IPEndPoint e)
