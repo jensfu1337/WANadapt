@@ -11,62 +11,37 @@ namespace Client
         {
             Utils.SetConsoleTitle("Client");
 
+            // Create client object and set eventhandler
             AsyncClient client = new AsyncClient();
             client.Connected += new ConnectedHandler(ConnectedToServer);
             client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
             client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 
+            // Used to find server and process messages
             string message;
-            IPAddress ip;
-            IPHostEntry host;
-            Ping ping = new Ping();
-            PingReply reply;
             bool hostFound = false;
-            
-            Console.Write(string.Join<IPAddress>("\n", CheckIP.GetLocalClassDRangeIPs()));
 
             Console.WriteLine("\n\nEnter IPv4 address. Leave empty to use local IPv4.\n");
 
             do
             {
                 message = string.Empty;
-                ip = null;
-                host = null;
-                reply = null;
-
                 Console.Write("> ");
                 message = Console.ReadLine();
 
+                // Get local IPv4 if message is empty
                 if (message.Length == 0)
-                {
-                    host = Dns.GetHostEntry(Dns.GetHostName());
-                    ip = host.AddressList[1];
-                }
-                else
-                {
-                    try
-                    {
-                        ip = IPAddress.Parse(message);
-                    }
-                    catch
-                    {
-                        Console.WriteLine("Invalid IP address entered...");
-                        continue;
-                    }
-                }
-                                
-                reply = ping.Send(ip, 3000);
-                hostFound = (reply.Status == IPStatus.Success);
+                    message = Dns.GetHostEntry(Dns.GetHostName()).AddressList[1].ToString(); 
+
+                hostFound = IPHelper.IsAlive(message);     
             }
             while (!hostFound);
 
-            message = String.Empty;
-            client.StartClient(new IPEndPoint(ip, client.Port));
-
+            client.StartClient(new IPEndPoint(IPAddress.Parse(message), client.Port));
             
             while (message.ToUpper() != "q")
             {
-
+                message = string.Empty;
                 Console.Write("Client > ");
                 message = Console.ReadLine();
 
