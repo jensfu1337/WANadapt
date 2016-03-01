@@ -11,10 +11,10 @@ namespace Common
 {
     public static class IPHelper
     {
-        private const int PING_RANGE = 255;
+        private const ushort PING_RANGE = 255;
         private static int timeOut = 500;
-        private static int ttl = 5;
-        private static byte[] data = Encoding.ASCII.GetBytes("PingTesterinho");        
+        private static int timeToLive = 5;
+        private static byte[] data = Encoding.ASCII.GetBytes("PingMe");        
 
         /// <summary>
         /// Get available IP addresses of local network in class D range
@@ -28,7 +28,7 @@ namespace Common
             string baseIP = localIP.Replace(localIP.ToString().Split('.')[3], "");
             // Ping object and output list for available addresses
             var pingers = new Ping[PING_RANGE];
-            var pingOpt = new PingOptions(ttl, true);
+            var pingOpt = new PingOptions(timeToLive, true);
             var adrList = new List<IPAddress>();
             // Used for threading
             var @lock = new object();
@@ -48,7 +48,9 @@ namespace Common
                     }
                     // Add available IPs to list
                     if (e.Reply.Status == IPStatus.Success)
+                    {
                         adrList.Add(e.Reply.Address);
+                    }
                 };
                 // Increment instances and start asynchronous Ping
                 lock (@lock)
@@ -74,7 +76,7 @@ namespace Common
         public static bool IsAlive(string ipAddress)
         {
             var ping = new Ping();
-            var pingOpt = new PingOptions(ttl, true);
+            var pingOpt = new PingOptions(timeToLive, true);
             IPAddress pingIP;
             PingReply reply;
             var isAlive = false;
