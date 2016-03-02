@@ -119,7 +119,7 @@ namespace Server
                     return;
                 }
 
-                var receive = state.Listener.EndReceive(result);
+                int receive = state.Listener.EndReceive(result);
 
                 if (receive > 0)
                 {
@@ -132,11 +132,9 @@ namespace Server
                 }
                 else
                 {
-                    var messageReceived = this.MessageReceived;
-
-                    if (messageReceived != null)
+                    if (this.MessageReceived != null)
                     {
-                        messageReceived(state.Id, state.Text);
+                        this.MessageReceived(state.Id, state.Text);
                     }
 
                     state.Reset();
@@ -214,7 +212,7 @@ namespace Server
 
         public void Close(int id)
         {
-            var state = this.GetClient(id);
+            var state = (IStateObject)this.GetClient(id);
 
             if (state == null)
             {
