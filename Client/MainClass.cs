@@ -9,8 +9,7 @@ namespace Client
     class MainClass
     {
         private static AsyncClient client;
-        private static ManualResetEvent messageReceived;
-        private static bool isConnected;
+        private static readonly ManualResetEvent messageReceived = new ManualResetEvent(false);
 
         public static void Main(string[] args)
         {
@@ -44,23 +43,22 @@ namespace Client
             // Initialize and start client
             InitClient();
             StartClient(message);
-            
-            while (message.ToUpper() != "q")
+            message = string.Empty;
+            Console.Write("Client > ");
+
+            while (message.ToUpper() != "q" && client.IsConnected)
             {
-                message = string.Empty;
-                Console.Write("Client > ");
-                message = Console.ReadLine();
-
-                if (!isConnected)
-                    break;
-
                 if (message.Length > 0)
                 {
-                    client.Send(message, false);
+                    client.Send(message);
                     client.Receive();
-                    messageReceived.WaitOne();
-                }                
+                }
+
+                message = string.Empty;
+                message = Console.ReadLine();
             }
+
+            Console.WriteLine("Howdy! ;)");
             Console.Read();
         }
 
@@ -72,9 +70,6 @@ namespace Client
             client.Disconnected += new DisconnectedHandler(DisconnectedFromServer);
             client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
             client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
-
-            messageReceived = new ManualResetEvent(false);
-            isConnected = false;
         }
 
         private static void StartClient(string ipAddress)
@@ -87,26 +82,23 @@ namespace Client
 
         private static void ConnectedToServer(IAsyncClient a, IPEndPoint e)
         {
-            isConnected = true;
             Console.WriteLine("\nConnected to {0}:{1}...\n\n", e.Address, e.Port);
         }
 
         private static void DisconnectedFromServer(IAsyncClient a, IPEndPoint e)
         {
-            isConnected = false;
             Console.WriteLine("Disconnected from Server...");
         }
 
         private static void ServerMessageReceived(IAsyncClient a, String msg)
         {
             Console.WriteLine("\nServer > {0} ", msg);
-            messageReceived.Set();
+            Console.Write("Client > ");
         }
 
-        private static void ClientMessageSubmitted(IAsyncClient a, bool close)
+        private static void ClientMessageSubmitted(IAsyncClient a)
         {
-            if (close)
-                a.Dispose();
+
         }
     }
 }

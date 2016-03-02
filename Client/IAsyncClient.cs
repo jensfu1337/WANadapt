@@ -11,8 +11,7 @@ namespace Client
         event ClientMessageSubmittedHandler MessageSubmitted;
 
         void StartClient(IPEndPoint endpoint);
-        bool IsConnectionValid();
         void Receive();
-        void Send(string msg, bool close);
+        void Send(string msg);
     }
 }

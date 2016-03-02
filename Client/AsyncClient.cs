@@ -10,14 +10,14 @@ namespace Client
     public delegate void ConnectedHandler(IAsyncClient a, IPEndPoint e);
     public delegate void DisconnectedHandler(IAsyncClient a, IPEndPoint e);
     public delegate void ClientMessageReceivedHandler(IAsyncClient a, string msg);
-    public delegate void ClientMessageSubmittedHandler(IAsyncClient a, bool close);
+    public delegate void ClientMessageSubmittedHandler(IAsyncClient a);
 
     public sealed class AsyncClient : IAsyncClient
     {
         private const ushort _port = 8889;
         private Socket listener;
-        private bool close;
         private IPEndPoint endpoint;
+        private bool isConnected = false;
 
         public ushort Port
         {
@@ -27,8 +27,16 @@ namespace Client
             }
         }
 
+        public bool IsConnected
+        {
+            get
+            {
+                // isConnected = !(this.listener.Poll(1000, SelectMode.SelectRead) && this.listener.Available == 0);
+                return isConnected;
+            }
+        }
+
         private readonly ManualResetEvent connected = new ManualResetEvent(false);
-        private readonly ManualResetEvent sent = new ManualResetEvent(false);
         private readonly ManualResetEvent received = new ManualResetEvent(false);
 
         public event ConnectedHandler Connected;
@@ -44,14 +52,12 @@ namespace Client
             {
                 this.listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 this.listener.BeginConnect(endpoint, this.OnConnectCallback, this.listener);
-                Console.WriteLine("Waiting for connection...");
                 this.connected.WaitOne();
 
+                isConnected = true;
                 var connectedHandler = this.Connected;
-
                 if (connectedHandler != null)
                 {
-                    Console.WriteLine("Connection found!");
                     connectedHandler(this, endpoint);
                 }
             }
@@ -61,31 +67,13 @@ namespace Client
             }
         }
 
-        private bool IsConnected()
-        {
-            return !(this.listener.Poll(1000, SelectMode.SelectRead) && this.listener.Available == 0);
-        }
-
-        public bool IsConnectionValid()
-        {
-            if (!IsConnected())
-            {
-                if (this.Disconnected != null)
-                {
-                    Disconnected(this, endpoint);
-                    this.Dispose();
-                }
-                return false;
-            }
-            return true;
-        }
-
         private void OnConnectCallback(IAsyncResult result)
         {
-            var server = (Socket)result.AsyncState;
-
             try
             {
+                var server = (Socket)result.AsyncState;
+                Console.WriteLine("Connecting to {0}", endpoint.Address);
+
                 server.EndConnect(result);
                 this.connected.Set();
             }
@@ -98,56 +86,89 @@ namespace Client
             }
         }
 
-        #region Receive data
+        #region Receive
         public void Receive()
         {
-            var state = new StateObject(this.listener);
-
-            if (!this.IsConnectionValid())
-                return;
-            
-            state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+            try
+            {
+                var state = new StateObject(this.listener);
+                state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+            }
+            catch (SocketException e)
+            {
+                // 10035 == WSAEWOULDBLOCK
+                if (e.NativeErrorCode.Equals(10035))
+                    Console.WriteLine("Still Connected, but the Send would block");
+                else
+                {
+                    Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
+                    this.RaiseDisconnected();
+                }
+            }
         }
 
         private void ReceiveCallback(IAsyncResult result)
         {
-            var state = (IStateObject)result.AsyncState;
-            var receive = state.Listener.EndReceive(result);
-
-            if (receive > 0)
+            try
             {
-                state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
-            }
+                var state = (IStateObject)result.AsyncState;
+                int receive = state.Listener.EndReceive(result);
 
-            if (receive == state.BufferSize)
-            {
-                state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
-            }
-            else
-            {
-                var messageReceived = this.MessageReceived;
-
-                if (messageReceived != null)
+                if (receive > 0)
                 {
-                    messageReceived(this, state.Text);
+                    state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
                 }
 
-                state.Reset();
-                this.received.Set();
+                if (receive == state.BufferSize)
+                {
+                    state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+                }
+                else
+                {
+                    var messageReceivedHandler = this.MessageReceived;
+                    if (messageReceivedHandler != null)
+                    {
+                        messageReceivedHandler(this, state.Text);
+                    }
+
+                    state.Reset();
+                    this.received.Set();
+                }
+            }
+            catch (SocketException e)
+            {
+                // 10035 == WSAEWOULDBLOCK
+                if (e.NativeErrorCode.Equals(10035))
+                    Console.WriteLine("Still Connected, but the Send would block");
+                else
+                {
+                    Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
+                    this.RaiseDisconnected();
+                }
             }
         }
         #endregion
 
-        #region Send data
-        public void Send(string msg, bool close)
+        #region Send
+        public void Send(string msg)
         {
-            if (!this.IsConnectionValid())
-                return;
+            byte[] response = Encoding.UTF8.GetBytes(msg);
 
-            var response = Encoding.UTF8.GetBytes(msg);
-
-            this.close = close;
-            this.listener.BeginSend(response, 0, response.Length, SocketFlags.None, this.SendCallback, this.listener);
+            try
+            {
+                this.listener.BeginSend(response, 0, response.Length, SocketFlags.None, this.SendCallback, this.listener);
+            }
+            catch (SocketException e)
+            {
+                // 10035 == WSAEWOULDBLOCK
+                if (e.NativeErrorCode.Equals(10035))
+                    Console.WriteLine("Still Connected, but the Send would block");
+                else
+                {
+                    // Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
+                    this.RaiseDisconnected();
+                }
+            }
         }
 
         private void SendCallback(IAsyncResult result)
@@ -155,41 +176,32 @@ namespace Client
             try
             {
                 var resceiver = (Socket)result.AsyncState;
-
                 resceiver.EndSend(result);
-            }
-            catch (SocketException)
-            {
-                // TODO:
-            }
-            catch (ObjectDisposedException)
-            {
-                // TODO;
-            }
 
-            var messageSubmitted = this.MessageSubmitted;
-
-            if (messageSubmitted != null)
-            {
-                messageSubmitted(this, this.close);
+                var messageSubmittedHandler = this.MessageSubmitted;
+                if (messageSubmittedHandler != null)
+                { 
+                    messageSubmittedHandler(this);
+                }
             }
-
-            this.sent.Set();
+            catch (SocketException e)
+            {
+                // 10035 == WSAEWOULDBLOCK
+                if (e.NativeErrorCode.Equals(10035))
+                    Console.WriteLine("Still Connected, but the Send would block");
+                else
+                {
+                    // Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
+                    this.RaiseDisconnected();
+                }
+            }
         }
         #endregion
-
-        private void RaiseDisconnect()
-        {
-
-        }
 
         private void Close()
         {
             try
             {
-                if (!this.IsConnected())
-                    return;
-                
                 this.listener.Shutdown(SocketShutdown.Both);
                 this.listener.Close();
             }
@@ -197,12 +209,29 @@ namespace Client
             {
                 // TODO:
             }
+            finally
+            {
+                this.RaiseDisconnected();
+            }
+        }
+
+        private void RaiseDisconnected()
+        {
+            if (!isConnected)
+                return;
+
+            var disconnectedHandler = this.Disconnected;
+            if (disconnectedHandler != null)
+            {
+                disconnectedHandler(this, endpoint);
+            }
+
+            isConnected = false;
         }
 
         public void Dispose()
         {
             this.connected.Dispose();
-            this.sent.Dispose();
             this.received.Dispose();
             this.Close();
         }
