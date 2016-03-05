@@ -2,28 +2,29 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
 namespace Client
 {
-    public sealed class AsyncClient : AsyncClientBase
+    public sealed class SimpleClient : AsyncClientBase
     {
-        private AsyncClient() { }
-        public AsyncClient(IPAddress remoteIP): this()
+        private SimpleClient() { }
+
+        public SimpleClient(IPAddress remoteIP, [Optional, DefaultParameterValue((ushort)8889)]ushort port)
         {
+            this.Port = port;
             this.Endpoint = new IPEndPoint(remoteIP, this.Port);
         }
-        public override void StartClient()
+        #region Connect
+        public override void Connect()
         {
             try
             {
                 this.Listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 this.Listener.BeginConnect(this.Endpoint, this.OnConnectCallback, this.Listener);
-                this.connected.WaitOne();
-
-                IsConnected = true;
-                this.RaiseConnected();
+                this.mreConnected.WaitOne();
             }
             catch (SocketException se)
             {
@@ -39,7 +40,7 @@ namespace Client
                 Console.WriteLine("Connecting to {0}", this.Endpoint.Address);
 
                 server.EndConnect(result);
-                this.connected.Set();
+                this.OnConnected();
             }
             catch (SocketException)
             {
@@ -49,6 +50,7 @@ namespace Client
                 this.Listener.BeginConnect(this.Endpoint, this.OnConnectCallback, this.Listener);
             }
         }
+        #endregion Connect
 
         #region Receive
         public override void Receive()
@@ -66,7 +68,7 @@ namespace Client
                 else
                 {
                     Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
-                    this.RaiseDisconnected();
+                    this.OnDisconnected();
                 }
             }
         }
@@ -89,10 +91,8 @@ namespace Client
                 }
                 else
                 {
-                    this.RaiseMessageReceived(state.Text);
-
+                    this.OnMessageReceived(state.Text);
                     state.Reset();
-                    this.received.Set();
                 }
             }
             catch (SocketException e)
@@ -103,7 +103,7 @@ namespace Client
                 else
                 {
                     Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
-                    this.RaiseDisconnected();
+                    this.OnDisconnected();
                 }
             }
         }
@@ -126,7 +126,7 @@ namespace Client
                 else
                 {
                     // Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
-                    this.RaiseDisconnected();
+                    this.OnDisconnected();
                 }
             }
         }
@@ -138,7 +138,7 @@ namespace Client
                 var resceiver = (Socket)result.AsyncState;
                 resceiver.EndSend(result);
 
-                this.RaiseMessageSubmitted();
+                this.OnMessageSubmitted();
             }
             catch (SocketException e)
             {
@@ -148,37 +148,39 @@ namespace Client
                 else
                 {
                     // Console.WriteLine("Disconnected: error code {0}!", e.NativeErrorCode);
-                    this.RaiseDisconnected();
+                    this.OnDisconnected();
                 }
             }
         }
         #endregion
 
-        public new void Dispose()
-        {
-            this.connected.Dispose();
-            this.received.Dispose();
-            this.Close();
-        }
-
         protected override void OnConnected()
         {
-            throw new NotImplementedException();
+            this.mreConnected.Set();
+            this.IsConnected = true;
+
+            if (!this.IsConnected)
+                this.RaiseConnected();           
         }
 
         protected override void OnDisconnected()
         {
-            throw new NotImplementedException();
+            this.Close();
+            this.IsConnected = false;
+
+            if (!this.IsConnected)
+                this.RaiseDisconnected();           
         }
 
-        protected override void OnMessageReceived()
+        protected override void OnMessageReceived(string msg)
         {
-            throw new NotImplementedException();
+            this.mreReceived.Set();
+            this.RaiseMessageReceived(msg);
         }
 
         protected override void OnMessageSubmitted()
         {
-            throw new NotImplementedException();
+            this.RaiseMessageSubmitted();
         }
     }
 }

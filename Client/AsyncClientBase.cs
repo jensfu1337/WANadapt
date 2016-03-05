@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Common;
+using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Client
 {
@@ -21,24 +18,32 @@ namespace Client
         public event ClientMessageReceivedHandler MessageReceived;
         public event ClientMessageSubmittedHandler MessageSubmitted;
 
-        protected readonly ManualResetEvent connected = new ManualResetEvent(false);
-        protected readonly ManualResetEvent received = new ManualResetEvent(false);
+        protected readonly ManualResetEvent mreConnected = new ManualResetEvent(false);
+        protected readonly ManualResetEvent mreReceived = new ManualResetEvent(false);
 
-        public ushort Port { get; protected set; }
+        public ushort Port
+        {
+            get { return this.Port; }         
+            protected set
+            {
+                if (NetUtils.IsPortValid(value))
+                    this.Port = value;
+            }
+        }
         protected Socket Listener { get; set; }
         protected IPEndPoint Endpoint { get; set; }
         public bool IsConnected { get; protected set; }
 
-        public abstract void StartClient();
+        public abstract void Connect();
         public abstract void Receive();
         public abstract void Send(string msg);
 
-        public AsyncClientBase()
+        protected AsyncClientBase()
         {
-            this.Port = 8889;
             this.IsConnected = false;
         }
 
+        #region Raise events
         protected void RaiseConnected()
         {
             var connected = this.Connected;
@@ -49,9 +54,6 @@ namespace Client
         }
         protected void RaiseDisconnected()
         {
-            if (!this.IsConnected)
-                return;
-
             var disconntected = this.Disconnected;
             if(disconntected != null)
             {
@@ -76,18 +78,22 @@ namespace Client
                 messageSubmitted(this);
             }
         }
+        #endregion Raise events
 
         protected abstract void OnConnected();
         protected abstract void OnDisconnected();
-        protected abstract void OnMessageReceived();
+        protected abstract void OnMessageReceived(string message);
         protected abstract void OnMessageSubmitted();
 
         public void Close()
         {
             try
             {
-                this.Listener.Shutdown(SocketShutdown.Both);
-                this.Listener.Close();
+                if (this.IsConnected)
+                {
+                    this.Listener.Shutdown(SocketShutdown.Both);
+                    this.Listener.Close();
+                }
             }
             catch (SocketException)
             {
@@ -95,10 +101,15 @@ namespace Client
             }
             finally
             {
-                this.RaiseDisconnected();
+                this.IsConnected = false;
             }
         }
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            this.mreConnected.Dispose();
+            this.mreReceived.Dispose();
+            this.Close();
+        }
     }
 }
