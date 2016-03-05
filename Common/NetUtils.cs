@@ -9,12 +9,25 @@ using System.Threading;
 
 namespace Common
 {
-    public static class IPHelper
+    public static class NetUtils
     {
+        // Registered client port range
+        private const ushort PORT_MIN = 1024;
+        private const ushort PORT_MAX = 49151;
+
         private const ushort PING_RANGE = 255;
         private static int timeOut = 500;
         private static int timeToLive = 5;
-        private static byte[] data = Encoding.ASCII.GetBytes("PingMe");        
+        private static byte[] data = Encoding.ASCII.GetBytes("PingMe");
+        
+        public static bool IsPortValid(ushort port)
+        {
+            // To be enhanced...
+            if (port >= PORT_MAX && <= PORT_MAX)
+                return true;
+
+            return false;
+        }   
 
         /// <summary>
         /// Get available IP addresses of local network in class D range
