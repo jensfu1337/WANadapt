@@ -7,59 +7,23 @@ using System.Threading;
 
 namespace Client
 {
-    public delegate void ConnectedHandler(IAsyncClient a, IPEndPoint e);
-    public delegate void DisconnectedHandler(IAsyncClient a, IPEndPoint e);
-    public delegate void ClientMessageReceivedHandler(IAsyncClient a, string msg);
-    public delegate void ClientMessageSubmittedHandler(IAsyncClient a);
-
-    public sealed class AsyncClient : IAsyncClient
+    public sealed class AsyncClient : AsyncClientBase
     {
-        private const ushort _port = 8889;
-        private Socket listener;
-        private IPEndPoint endpoint;
-        private bool isConnected = false;
-
-        public ushort Port
+        private AsyncClient() { }
+        public AsyncClient(IPAddress remoteIP): this()
         {
-            get
-            {
-                return _port;
-            }
+            this.Endpoint = new IPEndPoint(remoteIP, this.Port);
         }
-
-        public bool IsConnected
+        public override void StartClient()
         {
-            get
-            {
-                // isConnected = !(this.listener.Poll(1000, SelectMode.SelectRead) && this.listener.Available == 0);
-                return isConnected;
-            }
-        }
-
-        private readonly ManualResetEvent connected = new ManualResetEvent(false);
-        private readonly ManualResetEvent received = new ManualResetEvent(false);
-
-        public event ConnectedHandler Connected;
-        public event DisconnectedHandler Disconnected;
-        public event ClientMessageReceivedHandler MessageReceived;
-        public event ClientMessageSubmittedHandler MessageSubmitted;
-
-        public void StartClient(IPEndPoint _endpoint)
-        {
-            endpoint = _endpoint;
-
             try
             {
-                this.listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.listener.BeginConnect(endpoint, this.OnConnectCallback, this.listener);
+                this.Listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                this.Listener.BeginConnect(this.Endpoint, this.OnConnectCallback, this.Listener);
                 this.connected.WaitOne();
 
-                isConnected = true;
-                var connectedHandler = this.Connected;
-                if (connectedHandler != null)
-                {
-                    connectedHandler(this, endpoint);
-                }
+                IsConnected = true;
+                this.RaiseConnected();
             }
             catch (SocketException se)
             {
@@ -72,26 +36,26 @@ namespace Client
             try
             {
                 var server = (Socket)result.AsyncState;
-                Console.WriteLine("Connecting to {0}", endpoint.Address);
+                Console.WriteLine("Connecting to {0}", this.Endpoint.Address);
 
                 server.EndConnect(result);
                 this.connected.Set();
             }
             catch (SocketException)
             {
-                Console.WriteLine("Could not connect to {0}\nWaiting 1000ms...\n", endpoint.Address);
+                Console.WriteLine("Could not connect to {0}\nWaiting 1000ms...\n", this.Endpoint.Address);
 
                 Thread.Sleep(1000);
-                this.listener.BeginConnect(endpoint, this.OnConnectCallback, this.listener);
+                this.Listener.BeginConnect(this.Endpoint, this.OnConnectCallback, this.Listener);
             }
         }
 
         #region Receive
-        public void Receive()
+        public override void Receive()
         {
             try
             {
-                var state = new StateObject(this.listener);
+                var state = new StateObject(this.Listener);
                 state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
             }
             catch (SocketException e)
@@ -125,11 +89,7 @@ namespace Client
                 }
                 else
                 {
-                    var messageReceivedHandler = this.MessageReceived;
-                    if (messageReceivedHandler != null)
-                    {
-                        messageReceivedHandler(this, state.Text);
-                    }
+                    this.RaiseMessageReceived(state.Text);
 
                     state.Reset();
                     this.received.Set();
@@ -150,13 +110,13 @@ namespace Client
         #endregion
 
         #region Send
-        public void Send(string msg)
+        public override void Send(string msg)
         {
             byte[] response = Encoding.UTF8.GetBytes(msg);
 
             try
             {
-                this.listener.BeginSend(response, 0, response.Length, SocketFlags.None, this.SendCallback, this.listener);
+                this.Listener.BeginSend(response, 0, response.Length, SocketFlags.None, this.SendCallback, this.Listener);
             }
             catch (SocketException e)
             {
@@ -178,11 +138,7 @@ namespace Client
                 var resceiver = (Socket)result.AsyncState;
                 resceiver.EndSend(result);
 
-                var messageSubmittedHandler = this.MessageSubmitted;
-                if (messageSubmittedHandler != null)
-                { 
-                    messageSubmittedHandler(this);
-                }
+                this.RaiseMessageSubmitted();
             }
             catch (SocketException e)
             {
@@ -198,42 +154,31 @@ namespace Client
         }
         #endregion
 
-        private void Close()
-        {
-            try
-            {
-                this.listener.Shutdown(SocketShutdown.Both);
-                this.listener.Close();
-            }
-            catch (SocketException)
-            {
-                // TODO:
-            }
-            finally
-            {
-                this.RaiseDisconnected();
-            }
-        }
-
-        private void RaiseDisconnected()
-        {
-            if (!isConnected)
-                return;
-
-            var disconnectedHandler = this.Disconnected;
-            if (disconnectedHandler != null)
-            {
-                disconnectedHandler(this, endpoint);
-            }
-
-            isConnected = false;
-        }
-
-        public void Dispose()
+        public new void Dispose()
         {
             this.connected.Dispose();
             this.received.Dispose();
             this.Close();
+        }
+
+        protected override void OnConnected()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnDisconnected()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnMessageReceived()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnMessageSubmitted()
+        {
+            throw new NotImplementedException();
         }
     }
 }

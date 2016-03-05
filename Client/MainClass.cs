@@ -41,8 +41,8 @@ namespace Client
             while (!hostFound);
 
             // Initialize and start client
-            InitClient();
-            StartClient(message);
+            InitClient(message);
+            StartClient();
             message = string.Empty;
             Console.Write("Client > ");
 
@@ -62,41 +62,39 @@ namespace Client
             Console.Read();
         }
 
-        private static void InitClient()
+        private static void InitClient(string msg)
         {
+            var remoteIP = IPAddress.Parse(msg);
             // Create client object and set eventhandler
-            client = new AsyncClient();
+            client = new AsyncClient(remoteIP);
             client.Connected += new ConnectedHandler(ConnectedToServer);
             client.Disconnected += new DisconnectedHandler(DisconnectedFromServer);
             client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
             client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
         }
 
-        private static void StartClient(string ipAddress)
+        private static void StartClient()
         {
-            var connectIP = IPAddress.Parse(ipAddress);
-            var endPoint = new IPEndPoint(connectIP, client.Port);
-
-            client.StartClient(endPoint);
+            client.StartClient();
         }
 
-        private static void ConnectedToServer(IAsyncClient a, IPEndPoint e)
+        private static void ConnectedToServer(AsyncClientBase a, IPEndPoint e)
         {
             Console.WriteLine("\nConnected to {0}:{1}...\n\n", e.Address, e.Port);
         }
 
-        private static void DisconnectedFromServer(IAsyncClient a, IPEndPoint e)
+        private static void DisconnectedFromServer(AsyncClientBase a, IPEndPoint e)
         {
             Console.WriteLine("Disconnected from Server...");
         }
 
-        private static void ServerMessageReceived(IAsyncClient a, String msg)
+        private static void ServerMessageReceived(AsyncClientBase a, String msg)
         {
             Console.WriteLine("\nServer > {0} ", msg);
             Console.Write("Client > ");
         }
 
-        private static void ClientMessageSubmitted(IAsyncClient a)
+        private static void ClientMessageSubmitted(AsyncClientBase a)
         {
 
         }
