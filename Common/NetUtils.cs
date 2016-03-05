@@ -23,7 +23,7 @@ namespace Common
         public static bool IsPortValid(ushort port)
         {
             // To be enhanced...
-            if (port >= PORT_MAX && <= PORT_MAX)
+            if (port >= PORT_MAX && port <= PORT_MAX)
                 return true;
 
             return false;
