@@ -8,14 +8,14 @@ namespace Client
 {
     class MainClass
     {
-        private static AsyncClient client;
+        private static SimpleClient client;
         private static readonly ManualResetEvent messageReceived = new ManualResetEvent(false);
 
         public static void Main(string[] args)
         {
             Utils.SetConsoleTitle("Client");
             
-            List<IPAddress> localIPs = IPHelper.GetLocalClassDRangeIPs();
+            List<IPAddress> localIPs = NetUtils.GetLocalClassDRangeIPs();
             string locIPsOutput = String.Join<IPAddress>("\n", localIPs);
 
             Console.WriteLine("List with available local IPs:");
@@ -36,7 +36,7 @@ namespace Client
                 if (message.Length == 0)
                     message = Dns.GetHostEntry(Dns.GetHostName()).AddressList[1].ToString(); 
 
-                hostFound = IPHelper.IsAlive(message);     
+                hostFound = NetUtils.IsAlive(message);     
             }
             while (!hostFound);
 
@@ -66,7 +66,7 @@ namespace Client
         {
             var remoteIP = IPAddress.Parse(msg);
             // Create client object and set eventhandler
-            client = new AsyncClient(remoteIP);
+            client = new SimpleClient(remoteIP);
             client.Connected += new ConnectedHandler(ConnectedToServer);
             client.Disconnected += new DisconnectedHandler(DisconnectedFromServer);
             client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
@@ -75,7 +75,7 @@ namespace Client
 
         private static void StartClient()
         {
-            client.StartClient();
+            client.Connect();
         }
 
         private static void ConnectedToServer(AsyncClientBase a, IPEndPoint e)
