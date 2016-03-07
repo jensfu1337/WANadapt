@@ -46,9 +46,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="SimpleClient.cs" />
+    <Compile Include="Network\SimpleClient.cs" />
     <Compile Include="Network\AsyncClientBase.cs" />
-    <Compile Include="Network\MainClass.cs" />
+    <Compile Include="MainClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

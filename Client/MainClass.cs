@@ -1,6 +1,7 @@
 ﻿using System;
 using Common;
 using System.Net;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -14,11 +15,12 @@ namespace Client
         public static void Main(string[] args)
         {
             Utils.SetConsoleTitle("Client");
-            
-            List<IPAddress> localIPs = NetUtils.GetLocalClassDRangeIPs();
-            string locIPsOutput = String.Join<IPAddress>("\n", localIPs);
 
-            Console.WriteLine("List with available local IPs:");
+            List<IPAddress> localIPs = NetUtils.GetLocalClassDRangeIPs();
+            var sepp = "\n\t- ";
+            string locIPsOutput = sepp + string.Join<IPAddress>(sepp, localIPs);
+
+            Console.Write("List with available local IPs:");
             Console.WriteLine(locIPsOutput);
             Console.WriteLine("\n\nEnter IPv4 address. Leave empty to use local IPv4.\n");
 

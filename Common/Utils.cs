@@ -14,11 +14,16 @@ namespace Common
                 return;
             
             Console.Title = title;
-            Console.WriteLine(title);
 
-            for (int i = 0; i < title.Length; i++)
-                Console.Write("-");
+            // Draw title in a box
+            int width = Console.WindowWidth - 1;
+            string paddingFull = string.Empty.PadLeft(width, '-');
+            string paddingTitle = title.PadLeft(width / 2, '-');
+            string paddingRest = string.Empty.PadLeft((width - paddingTitle.Length), '-');
 
+            Console.WriteLine(paddingFull);
+            Console.WriteLine(paddingTitle + paddingRest);
+            Console.WriteLine(paddingFull);       
             Console.WriteLine();
         }
 
