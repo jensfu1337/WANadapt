@@ -12,12 +12,12 @@ namespace Common
     public static class NetUtils
     {
         // Registered client port range
-        private const ushort PORT_MIN = 1024;
-        private const ushort PORT_MAX = 49151;
+        public const ushort PORT_MIN = 1024;
+        public const ushort PORT_MAX = 49151;
 
         private const ushort PING_RANGE = 255;
-        private static int timeOut = 500;
-        private static int timeToLive = 5;
+        private static int timeOut = 1000;
+        private static int timeToLive = 50;
         private static byte[] data = Encoding.ASCII.GetBytes("PingMe");
         
         public static bool IsPortValid(ushort port)
