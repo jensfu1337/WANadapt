@@ -21,13 +21,17 @@ namespace Client
         protected readonly ManualResetEvent mreConnected = new ManualResetEvent(false);
         protected readonly ManualResetEvent mreReceived = new ManualResetEvent(false);
 
+        protected ushort port;
+
         public ushort Port
         {
-            get { return this.Port; }         
+            get { return this.port; } // { return this.port; }         
             protected set
             {
                 if (NetUtils.IsPortValid(value))
-                    this.Port = value;
+                    this.port = value;
+                else
+                    throw new Exception("Exception: Invalid port\nOnly port between " + NetUtils.PORT_MIN + " and " + NetUtils.PORT_MAX + " allowed.");
             }
         }
         protected Socket Listener { get; set; }
