@@ -1,4 +1,5 @@
 ﻿using Common;
+using Common.Network;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -6,10 +7,11 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-namespace Client
+namespace Client.Network
 {
     public sealed class SimpleClient : AsyncClientBase
     {
+        private bool reconnect = false;
         private SimpleClient() { }
 
         public SimpleClient(IPAddress remoteIP, [Optional, DefaultParameterValue((ushort)8889)]ushort port)
@@ -22,6 +24,8 @@ namespace Client
         {
             try
             {
+                Console.WriteLine("Connecting to {0}", this.Endpoint.Address);
+
                 this.Listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 this.Listener.BeginConnect(this.Endpoint, this.OnConnectCallback, this.Listener);
                 this.mreConnected.WaitOne();
@@ -31,20 +35,28 @@ namespace Client
                 Console.WriteLine(se.Message);
             }
         }
-
+        
         private void OnConnectCallback(IAsyncResult result)
         {
             try
             {
                 var server = (Socket)result.AsyncState;
-                Console.WriteLine("Connecting to {0}", this.Endpoint.Address);
-
                 server.EndConnect(result);
+
                 this.OnConnected();
+                this.reconnect = false;
             }
             catch (SocketException)
             {
-                Console.WriteLine("Could not connect to {0}\nWaiting 1000ms...\n", this.Endpoint.Address);
+                if (!this.reconnect)
+                {
+                    Console.Write("\nCould not connect to {0}\nWaiting 1s to reconnect...", this.Endpoint.Address);
+                    this.reconnect = true;
+                }
+                else
+                {
+                    Console.Write(".");
+                }
 
                 Thread.Sleep(1000);
                 this.Listener.BeginConnect(this.Endpoint, this.OnConnectCallback, this.Listener);

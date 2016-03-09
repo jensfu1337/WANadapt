@@ -5,25 +5,19 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading;
 
-// Credits to K3N @ http://stackoverflow.com/a/13493419
-
-namespace Common
+namespace Common.Network
 {
     public static class NetUtils
     {
-        // Registered client port range
-        public const ushort PORT_MIN = 1024;
-        public const ushort PORT_MAX = 49151;
-
-        private const ushort PING_RANGE = 255;
-        private static int timeOut = 1000;
-        private static int timeToLive = 50;
-        private static byte[] data = Encoding.ASCII.GetBytes("PingMe");
-        
+        /// <summary>
+        /// Checking wheter given port is in registered client port range
+        /// To be enhanced: check whether port in use
+        /// </summary>
+        /// <param name="port"></param>
+        /// <returns></returns>
         public static bool IsPortValid(ushort port)
         {
-            // To be enhanced...
-            if (port >= PORT_MAX && port <= PORT_MAX)
+            if (port >= NetConstants.PortMin && port <= NetConstants.PortMax)
                 return true;
 
             return false;
@@ -39,10 +33,12 @@ namespace Common
             // Get local IP and prepare base IP
             string localIP = Dns.GetHostEntry(Dns.GetHostName()).AddressList[1].ToString();
             string baseIP = localIP.Replace(localIP.ToString().Split('.')[3], "");
+
             // Ping object and output list for available addresses
-            var pingers = new Ping[PING_RANGE];
-            var pingOpt = new PingOptions(timeToLive, true);
+            var pingers = new Ping[255];
+            var pingOpt = new PingOptions(NetConstants.TimeToLive, true);
             var adrList = new List<IPAddress>();
+
             // Used for threading
             var @lock = new object();
             var instances = 0;
@@ -52,6 +48,7 @@ namespace Common
             for (int i = 0; i < 255; i++)
             {
                 pingers[i] = new Ping();
+
                 // Set event using lamda
                 pingers[i].PingCompleted += (s, e) =>
                 {
@@ -59,18 +56,20 @@ namespace Common
                     {
                         instances -= 1;
                     }
+
                     // Add available IPs to list
                     if (e.Reply.Status == IPStatus.Success)
                     {
                         adrList.Add(e.Reply.Address);
                     }
                 };
+
                 // Increment instances and start asynchronous Ping
                 lock (@lock)
                 {
                     instances += 1;
                 }
-                pingers[i].SendAsync(baseIP + (i+1).ToString(), timeOut, data, pingOpt);
+                pingers[i].SendAsync(baseIP + (i+1).ToString(), NetConstants.TimeOut, Encoding.ASCII.GetBytes("huehue"), pingOpt);
             }
             // Wait for all instances to be finished
             while (instances > 0)
@@ -89,23 +88,21 @@ namespace Common
         public static bool IsAlive(string ipAddress)
         {
             var ping = new Ping();
-            var pingOpt = new PingOptions(timeToLive, true);
+            var pingOpt = new PingOptions(NetConstants.TimeToLive, true);
             IPAddress pingIP;
             PingReply reply;
-            var isAlive = false;
 
             try
             {
                 pingIP = IPAddress.Parse(ipAddress);
-                reply = ping.Send(pingIP, timeOut, data, pingOpt);
-                isAlive = (reply.Status == IPStatus.Success);
+                reply = ping.Send(pingIP, NetConstants.TimeOut, Encoding.ASCII.GetBytes("huehue"), pingOpt);
+
+                return (reply.Status == IPStatus.Success);
             }
             catch(Exception)
             {
-                Console.WriteLine("Invalid IP address entered...");
-            }            
-
-            return isAlive;
+                return false;
+            }
         }
     }
 }

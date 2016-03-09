@@ -1,6 +1,6 @@
 ﻿using System.Net.Sockets;
 
-namespace Common
+namespace Common.Network
 {
     public interface IStateObject
     {

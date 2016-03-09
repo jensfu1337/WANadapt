@@ -1,11 +1,13 @@
 ﻿using Common;
+using Common.Network;
 using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Client
+namespace Client.Network
 {
+    // Delegates used for eventhandling
     public delegate void ConnectedHandler(AsyncClientBase a, IPEndPoint e);
     public delegate void DisconnectedHandler(AsyncClientBase a, IPEndPoint e);
     public delegate void ClientMessageReceivedHandler(AsyncClientBase a, string msg);
@@ -13,41 +15,51 @@ namespace Client
 
     public abstract class AsyncClientBase : IDisposable
     {
+        #region Events
         public event ConnectedHandler Connected;
         public event DisconnectedHandler Disconnected;
         public event ClientMessageReceivedHandler MessageReceived;
         public event ClientMessageSubmittedHandler MessageSubmitted;
-
+        // ManualResetEvents used for asynchronous methods
         protected readonly ManualResetEvent mreConnected = new ManualResetEvent(false);
         protected readonly ManualResetEvent mreReceived = new ManualResetEvent(false);
+        #endregion Events
 
-        protected ushort port;
+        protected ushort _port;
 
+        #region Properties
         public ushort Port
         {
-            get { return this.port; } // { return this.port; }         
+            get { return this._port; } // { return this.port; }         
             protected set
             {
                 if (NetUtils.IsPortValid(value))
-                    this.port = value;
+                    this._port = value;
                 else
-                    throw new Exception("Exception: Invalid port\nOnly port between " + NetUtils.PORT_MIN + " and " + NetUtils.PORT_MAX + " allowed.");
+                    throw new Exception("Exception: Invalid port\nOnly port between " + NetConstants.PortMin + " and " + NetConstants.PortMax + " allowed.");
             }
         }
         protected Socket Listener { get; set; }
         protected IPEndPoint Endpoint { get; set; }
-        public bool IsConnected { get; protected set; }
+        public bool IsConnected { get; protected set; } = false;
+        #endregion Properties
 
+        protected AsyncClientBase()
+        {            
+
+        }
+
+        #region Abstract Methods
         public abstract void Connect();
         public abstract void Receive();
         public abstract void Send(string msg);
+        protected abstract void OnConnected();
+        protected abstract void OnDisconnected();
+        protected abstract void OnMessageReceived(string message);
+        protected abstract void OnMessageSubmitted();
+        #endregion Abstract Methods
 
-        protected AsyncClientBase()
-        {
-            this.IsConnected = false;
-        }
-
-        #region Raise events
+        #region Implemented Methods
         protected void RaiseConnected()
         {
             var connected = this.Connected;
@@ -64,7 +76,6 @@ namespace Client
                 disconntected(this, this.Endpoint);
             }
         }
-
         protected void RaiseMessageReceived(string message)
         {
             var messageReceived = this.MessageReceived;
@@ -73,7 +84,6 @@ namespace Client
                 messageReceived(this, message);
             }
         }
-
         protected void RaiseMessageSubmitted()
         {
             var messageSubmitted = this.MessageSubmitted;
@@ -82,14 +92,9 @@ namespace Client
                 messageSubmitted(this);
             }
         }
-        #endregion Raise events
 
-        protected abstract void OnConnected();
-        protected abstract void OnDisconnected();
-        protected abstract void OnMessageReceived(string message);
-        protected abstract void OnMessageSubmitted();
-
-        public void Close()
+        
+        public virtual void Close()
         {
             try
             {
@@ -109,11 +114,12 @@ namespace Client
             }
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             this.mreConnected.Dispose();
             this.mreReceived.Dispose();
             this.Close();
         }
+        #endregion Implemented Methods
     }
 }

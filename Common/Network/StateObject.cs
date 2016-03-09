@@ -1,7 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Text;
 
-namespace Common
+namespace Common.Network
 {
     public sealed class StateObject : IStateObject
     {

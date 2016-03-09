@@ -4,14 +4,13 @@ using System.Net;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
+using Common.Network;
+using Client.Network;
 
 namespace Client
 {
     class MainClass
     {
-        private static SimpleClient client;
-        private static readonly ManualResetEvent messageReceived = new ManualResetEvent(false);
-
         public static void Main(string[] args)
         {
             Utils.SetConsoleTitle("Client");
@@ -43,41 +42,39 @@ namespace Client
             while (!hostFound);
 
             // Initialize and start client
-            InitClient(message);
-            StartClient();
-            message = string.Empty;
-            Console.Write("Client > ");
+            SimpleClient client = new SimpleClient(IPAddress.Parse(message));
 
-            while (message.ToUpper() != "q" && client.IsConnected)
+            using (client)
             {
-                if (message.Length > 0)
-                {
-                    client.Send(message);
-                    client.Receive();
-                }
-
+                SetEvents(client);
+                client.Connect();
                 message = string.Empty;
-                message = Console.ReadLine();
+                Console.Write("Client > ");
+
+                while (message.ToUpper() != "q" && client.IsConnected)
+                {
+                    if (message.Length > 0)
+                    {
+                        client.Send(message);
+                        client.Receive();
+                    }
+
+                    message = string.Empty;
+                    message = Console.ReadLine();
+                }
             }
 
             Console.WriteLine("Howdy! ;)");
             Console.Read();
         }
 
-        private static void InitClient(string msg)
+        private static void SetEvents(SimpleClient client)
         {
-            var remoteIP = IPAddress.Parse(msg);
             // Create client object and set eventhandler
-            client = new SimpleClient(remoteIP);
             client.Connected += new ConnectedHandler(ConnectedToServer);
             client.Disconnected += new DisconnectedHandler(DisconnectedFromServer);
             client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
             client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
-        }
-
-        private static void StartClient()
-        {
-            client.Connect();
         }
 
         private static void ConnectedToServer(AsyncClientBase a, IPEndPoint e)

@@ -8,6 +8,10 @@ namespace Common
 {
     public static class Utils
     {
+        /// <summary>
+        /// Set window title and draw it in a box
+        /// </summary>
+        /// <param name="title"></param>
         public static void SetConsoleTitle(string title)
         {
             if (title.Length < 1)
@@ -15,7 +19,6 @@ namespace Common
             
             Console.Title = title;
 
-            // Draw title in a box
             int width = Console.WindowWidth - 1;
             string paddingFull = string.Empty.PadLeft(width, '-');
             string paddingTitle = title.PadLeft(width / 2, '-');
@@ -25,28 +28,6 @@ namespace Common
             Console.WriteLine(paddingTitle + paddingRest);
             Console.WriteLine(paddingFull);       
             Console.WriteLine();
-        }
-
-        //The commands for interaction between the server and the client
-        public enum Command 
-        {
-            //Log into the server
-            Login,
-            //Logout of the server
-            Logout,
-            //Send a text message to all the chat clients     
-            Message,
-            //Get a list of users in the chat room from the server
-            List,
-            //Empty
-            Null
-        }
-
-        public static IPAddress [] GetLanIPs()
-        {
-
-            // return addresslist of local host
-            return Dns.GetHostEntry(Dns.GetHostName()).AddressList;
         }
     }
 }
