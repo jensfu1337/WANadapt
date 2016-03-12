@@ -10,10 +10,10 @@ namespace Server
         {
             Utils.SetConsoleTitle("Server");
 
-            AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler (ClientMessageReceived);
-            AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(ServerMessageSubmitted);
+            SimpleServer.Instance.MessageReceived += new MessageReceivedHandler (ClientMessageReceived);
+            SimpleServer.Instance.MessageSubmitted += new MessageSubmittedHandler(ServerMessageSubmitted);
 
-            Thread thread = new Thread(new ThreadStart(AsyncSocketListener.Instance.StartListening));
+            Thread thread = new Thread(new ThreadStart(SimpleServer.Instance.StartListening));
             thread.IsBackground = true;
             thread.Start();
 
@@ -24,16 +24,16 @@ namespace Server
 
         private static void ClientMessageReceived(int id, String msg)
         {
-            AsyncSocketListener.Instance.Send(id, msg.Replace("client", "server"), false);
+            SimpleServer.Instance.Send(id, msg.Replace("client", "server"));
             Console.WriteLine("Client {0} > {1}", id, msg);
         }
 
-        private static void ServerMessageSubmitted(int id, bool close)
+        private static void ServerMessageSubmitted(int id)
         {
-            if (close)
-            {
-                AsyncSocketListener.Instance.Close(id);
-            }
+            //if (close)
+            //{
+            //    SimpleServer.Instance.Close(id);
+            //}
         }
     }
 }

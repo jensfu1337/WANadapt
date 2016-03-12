@@ -10,36 +10,21 @@ using System.Threading;
 
 namespace Server
 {
-    public delegate void MessageReceivedHandler(int id, string msg);
-    public delegate void MessageSubmittedHandler(int id, bool close);
-
-    public sealed class AsyncSocketListener : IAsyncSocketListener
-    {
-        private const ushort Port = 8889;
-        private const ushort Limit = 250;
-
-        private static readonly IAsyncSocketListener instance = new AsyncSocketListener();
-
-        private readonly ManualResetEvent mre = new ManualResetEvent(false);
-        private readonly IDictionary<int, IStateObject> clients = new Dictionary<int, IStateObject>();
-
-        public event MessageReceivedHandler MessageReceived;
-        public event MessageSubmittedHandler MessageSubmitted;
-
-        private AsyncSocketListener()
-        {
-        }
-
-        public static IAsyncSocketListener Instance
+    public sealed class SimpleServer : AsyncServerBase
+    {        
+        public static AsyncServerBase Instance
         {
             get
             {
-                return instance;
+                if(_instance == null)
+                    _instance = new SimpleServer();
+
+                return _instance;
             }
         }
 
         /* Starts the AsyncSocketListener */
-        public void StartListening()
+        public override void StartListening()
         {
             var endpoint = new IPEndPoint(IPAddress.Any, Port);
 
@@ -48,13 +33,13 @@ namespace Server
                 using (var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
                 {
                     listener.Bind(endpoint);
-                    listener.Listen(Limit);
+                    listener.Listen(this.MaxClients);
 
                     while (true)
                     {
-                        this.mre.Reset();
+                        this.mreConnected.Reset();
                         listener.BeginAccept(this.OnClientConnect, listener);
-                        this.mre.WaitOne();
+                        this.mreConnected.WaitOne();
                     }
                 }
             }
@@ -69,11 +54,11 @@ namespace Server
         {
             IStateObject state;
 
-            return this.clients.TryGetValue(id, out state) ? state : null;
+            return this._clients.TryGetValue(id, out state) ? state : null;
         }
 
         /* Checks if the socket is connected. */
-        public bool IsConnected(int id)
+        public override bool IsConnected(int id)
         {
             IStateObject state = this.GetClient(id);
 
@@ -83,20 +68,20 @@ namespace Server
         /* Add a socket to the clients dictionary. Lock clients temporary to handle multiple access.
          * ReceiveCallback raise a event, after the message receive complete. */
         #region Receive data
-        public void OnClientConnect(IAsyncResult result)
+        protected override void OnClientConnect(IAsyncResult result)
         {
-            this.mre.Set();
+            this.mreConnected.Set();
 
             try
             {
                 IStateObject state;
 
-                lock (this.clients)
+                lock (this._clients)
                 {
-                    var id = !this.clients.Any() ? 1 : this.clients.Keys.Max() + 1;
+                    var id = !this._clients.Any() ? 1 : this._clients.Keys.Max() + 1;
 
                     state = new StateObject(((Socket)result.AsyncState).EndAccept(result), id);
-                    this.clients.Add(id, state);
+                    this._clients.Add(id, state);
                     Console.WriteLine("Client connected.\n-->IP: {0}\n-->ID: {1}\n", state.Listener.LocalEndPoint, id);
                 }
 
@@ -108,7 +93,7 @@ namespace Server
             }
         }
 
-        public void ReceiveCallback(IAsyncResult result)
+        protected override void ReceiveCallback(IAsyncResult result)
         {
             var state = (IStateObject)result.AsyncState;
 
@@ -133,10 +118,7 @@ namespace Server
                 }
                 else
                 {
-                    if (this.MessageReceived != null)
-                    {
-                        this.MessageReceived(state.Id, state.Text);
-                    }
+                    this.OnMessageReceive(state.Id, state.Text);
 
                     state.Reset();
 
@@ -149,10 +131,9 @@ namespace Server
             }
         }
         #endregion
-
-        /* Send(int id, String msg, bool close) use bool to close the connection after the message sent. */
+        
         #region Send data
-        public void Send(int id, string msg, bool close)
+        public override void Send(int id, string msg)
         {
             var state = this.GetClient(id);
 
@@ -169,8 +150,7 @@ namespace Server
             try
             {
                 var send = Encoding.UTF8.GetBytes(msg);
-
-                state.Close = close;
+                
                 state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, this.SendCallback, state);
             }
             catch (SocketException se)
@@ -201,17 +181,12 @@ namespace Server
             }
             finally
             {
-                var messageSubmitted = this.MessageSubmitted;
-
-                if (messageSubmitted != null)
-                {
-                    messageSubmitted(state.Id, state.Close);
-                }
+                this.OnMessageSubmitted(state.Id);
             }
         }
         #endregion
 
-        public void Close(int id)
+        public override void Close(int id)
         {
             var state = (IStateObject)this.GetClient(id);
 
@@ -231,22 +206,32 @@ namespace Server
             }
             finally
             {
-                lock (this.clients)
+                lock (this._clients)
                 {
-                    this.clients.Remove(state.Id);
+                    this._clients.Remove(state.Id);
                     Console.WriteLine("Client disconnected with Id {0}", state.Id);
                 }
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
-            foreach (var id in this.clients.Keys)
+            foreach (var id in this._clients.Keys)
             {
                 this.Close(id);
             }
 
-            this.mre.Dispose();
+            this.mreConnected.Dispose();
+        }
+
+        protected override void OnMessageReceive(int id, string msg)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnMessageSubmitted(int id)
+        {
+            this.RaiseMessageSubmitted(id);
         }
     }
 }
