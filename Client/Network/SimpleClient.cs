@@ -2,7 +2,6 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
@@ -13,10 +12,14 @@ namespace Client.Network
         private bool reconnect = false;
         private SimpleClient() { }
 
-        public SimpleClient(IPAddress remoteIP, [Optional, DefaultParameterValue(Constants.DefaulPort)]ushort port)
+        public SimpleClient(IPAddress remoteIP)
+        {            
+            this.Endpoint = new IPEndPoint(remoteIP, this.Port);
+        }
+
+        public SimpleClient(IPAddress remoteIP, ushort port) : this(remoteIP)
         {
             this.Port = port;
-            this.Endpoint = new IPEndPoint(remoteIP, this.Port);
         }
 
         #region Connect
@@ -70,7 +73,7 @@ namespace Client.Network
             try
             {
                 var state = new StateObject(this.Listener);
-                state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+                state.Listener.BeginReceive(state.Buffer, 0, Constants.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
             }
             catch (SocketException e)
             {
@@ -94,12 +97,12 @@ namespace Client.Network
 
                 if (receive > 0)
                 {
-                    state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
+                    state.Append(receive);
                 }
 
-                if (receive == state.BufferSize)
+                if (receive == Constants.BufferSize)
                 {
-                    state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+                    state.Listener.BeginReceive(state.Buffer, 0, Constants.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
                 }
                 else
                 {
@@ -124,7 +127,7 @@ namespace Client.Network
         #region Send
         public override void Send(string msg)
         {
-            byte[] response = Encoding.UTF8.GetBytes(msg);
+            byte[] response = Common.Compression.Compressor.CompressBytes(Encoding.UTF8.GetBytes(msg));
 
             try
             {
