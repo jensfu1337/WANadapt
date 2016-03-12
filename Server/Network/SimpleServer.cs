@@ -11,7 +11,8 @@ using System.Threading;
 namespace Server
 {
     public sealed class SimpleServer : AsyncServerBase
-    {        
+    {   
+        // Get instance (Singleton)     
         public static AsyncServerBase Instance
         {
             get
@@ -22,8 +23,7 @@ namespace Server
                 return _instance;
             }
         }
-
-        /* Starts the AsyncSocketListener */
+        
         public override void StartListening()
         {
             var endpoint = new IPEndPoint(IPAddress.Any, Port);
@@ -65,8 +65,6 @@ namespace Server
             return !(state.Listener.Poll(1000, SelectMode.SelectRead) && state.Listener.Available == 0);
         }
 
-        /* Add a socket to the clients dictionary. Lock clients temporary to handle multiple access.
-         * ReceiveCallback raise a event, after the message receive complete. */
         #region Receive data
         protected override void OnClientConnect(IAsyncResult result)
         {
@@ -85,7 +83,7 @@ namespace Server
                     Console.WriteLine("Client connected.\n-->IP: {0}\n-->ID: {1}\n", state.Listener.LocalEndPoint, id);
                 }
 
-                state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+                state.Listener.BeginReceive(state.Buffer, 0, Constants.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
             }
             catch (SocketException)
             {
@@ -109,12 +107,12 @@ namespace Server
 
                 if (receive > 0)
                 {
-                    state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
+                    state.Append(receive);
                 }
 
-                if (receive == state.BufferSize)
+                if (receive == Constants.BufferSize)
                 {
-                    state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+                    state.Listener.BeginReceive(state.Buffer, 0, Constants.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
                 }
                 else
                 {
@@ -122,7 +120,7 @@ namespace Server
 
                     state.Reset();
 
-                    state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
+                    state.Listener.BeginReceive(state.Buffer, 0, Constants.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
                 }
             }
             catch (SocketException se)
@@ -149,7 +147,7 @@ namespace Server
 
             try
             {
-                var send = Encoding.UTF8.GetBytes(msg);
+                var send = Common.Compression.Compressor.CompressBytes(Encoding.UTF8.GetBytes(msg));
                 
                 state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, this.SendCallback, state);
             }
@@ -226,7 +224,7 @@ namespace Server
 
         protected override void OnMessageReceive(int id, string msg)
         {
-            throw new NotImplementedException();
+            this.RaiseMessageReceived(id, msg);
         }
 
         protected override void OnMessageSubmitted(int id)
