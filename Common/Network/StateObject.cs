@@ -17,7 +17,6 @@ namespace Common.Network
         {
             this.listener = listener;
             this.id = id;
-            this.Close = false;
             this.Reset();
         }
 
@@ -28,8 +27,6 @@ namespace Common.Network
                 return this.id;
             }
         }
-
-        public bool Close { get; set; }
 
         public int BufferSize
         {

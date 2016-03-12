@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Common.Network
 {
-    public static class NetUtils
+    public static class Utils
     {
         /// <summary>
         /// Checking wheter given port is in registered client port range
@@ -17,11 +17,12 @@ namespace Common.Network
         /// <returns></returns>
         public static bool IsPortValid(ushort port)
         {
-            if (port >= NetConstants.PortMin && port <= NetConstants.PortMax)
+            // to be enhanced: check wheter port is already in use / blocked
+            if (port >= Constants.PortMin && port <= Constants.PortMax)
                 return true;
 
             return false;
-        }   
+        }
 
         /// <summary>
         /// Get available IP addresses of local network in class D range
@@ -36,7 +37,7 @@ namespace Common.Network
 
             // Ping object and output list for available addresses
             var pingers = new Ping[255];
-            var pingOpt = new PingOptions(NetConstants.TimeToLive, true);
+            var pingOpt = new PingOptions(Constants.TimeToLive, true);
             var adrList = new List<IPAddress>();
 
             // Used for threading
@@ -69,7 +70,7 @@ namespace Common.Network
                 {
                     instances += 1;
                 }
-                pingers[i].SendAsync(baseIP + (i+1).ToString(), NetConstants.TimeOut, Encoding.ASCII.GetBytes("huehue"), pingOpt);
+                pingers[i].SendAsync(baseIP + (i+1).ToString(), Constants.TimeOut, Encoding.ASCII.GetBytes("huehue"), pingOpt);
             }
             // Wait for all instances to be finished
             while (instances > 0)
@@ -88,14 +89,14 @@ namespace Common.Network
         public static bool IsAlive(string ipAddress)
         {
             var ping = new Ping();
-            var pingOpt = new PingOptions(NetConstants.TimeToLive, true);
+            var pingOpt = new PingOptions(Constants.TimeToLive, true);
             IPAddress pingIP;
             PingReply reply;
 
             try
             {
                 pingIP = IPAddress.Parse(ipAddress);
-                reply = ping.Send(pingIP, NetConstants.TimeOut, Encoding.ASCII.GetBytes("huehue"), pingOpt);
+                reply = ping.Send(pingIP, Constants.TimeOut, Encoding.ASCII.GetBytes("huehue"), pingOpt);
 
                 return (reply.Status == IPStatus.Success);
             }
