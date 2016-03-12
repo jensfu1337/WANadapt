@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="Commands\Commands.cs" />
     <Compile Include="Commands\CommandBase.cs" />
+    <Compile Include="Compression\Compressor.cs" />
     <Compile Include="Network\Constants.cs" />
     <Compile Include="Network\Utils.cs" />
     <Compile Include="Utils.cs" />
@@ -51,9 +52,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Network\StateObject.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Compression\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
