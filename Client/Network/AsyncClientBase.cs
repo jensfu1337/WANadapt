@@ -25,18 +25,18 @@ namespace Client.Network
         protected readonly ManualResetEvent mreReceived = new ManualResetEvent(false);
         #endregion Events
 
-        protected ushort _port;
+        protected ushort _port = Constants.DefaulPort;
 
         #region Properties
         public ushort Port
         {
-            get { return this._port; } // { return this.port; }         
+            get { return this._port; }
             protected set
             {
-                if (NetUtils.IsPortValid(value))
+                if (Common.Network.Utils.IsPortValid(value))
                     this._port = value;
                 else
-                    throw new Exception("Exception: Invalid port\nOnly port between " + NetConstants.PortMin + " and " + NetConstants.PortMax + " allowed.");
+                    throw new Exception("Exception: Invalid port\nOnly port between " + Constants.PortMin + " and " + Constants.PortMax + " allowed.");
             }
         }
         protected Socket Listener { get; set; }
@@ -92,7 +92,6 @@ namespace Client.Network
                 messageSubmitted(this);
             }
         }
-
         
         public virtual void Close()
         {

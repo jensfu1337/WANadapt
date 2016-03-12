@@ -1,10 +1,6 @@
 ﻿using System;
-using Common;
 using System.Net;
-using System.Linq;
 using System.Collections.Generic;
-using System.Threading;
-using Common.Network;
 using Client.Network;
 
 namespace Client
@@ -13,9 +9,9 @@ namespace Client
     {
         public static void Main(string[] args)
         {
-            Utils.SetConsoleTitle("Client");
+            Common.Utils.SetConsoleTitle("Client");
 
-            List<IPAddress> localIPs = NetUtils.GetLocalClassDRangeIPs();
+            List<IPAddress> localIPs = Common.Network.Utils.GetLocalClassDRangeIPs();
             var sepp = "\n\t- ";
             string locIPsOutput = sepp + string.Join<IPAddress>(sepp, localIPs);
 
@@ -37,7 +33,7 @@ namespace Client
                 if (message.Length == 0)
                     message = Dns.GetHostEntry(Dns.GetHostName()).AddressList[1].ToString(); 
 
-                hostFound = NetUtils.IsAlive(message);     
+                hostFound = Common.Network.Utils.IsAlive(message);     
             }
             while (!hostFound);
 

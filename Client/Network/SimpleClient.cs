@@ -1,5 +1,4 @@
-﻿using Common;
-using Common.Network;
+﻿using Common.Network;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -14,11 +13,12 @@ namespace Client.Network
         private bool reconnect = false;
         private SimpleClient() { }
 
-        public SimpleClient(IPAddress remoteIP, [Optional, DefaultParameterValue((ushort)8889)]ushort port)
+        public SimpleClient(IPAddress remoteIP, [Optional, DefaultParameterValue(Constants.DefaulPort)]ushort port)
         {
             this.Port = port;
             this.Endpoint = new IPEndPoint(remoteIP, this.Port);
         }
+
         #region Connect
         public override void Connect()
         {
