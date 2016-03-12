@@ -1,73 +1,54 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Text;
 
 namespace Common.Network
 {
     public sealed class StateObject : IStateObject
     {
-        /* Contains the state information. */
-
-        private const int Buffer_Size = 1024;
-        private readonly byte[] buffer = new byte[Buffer_Size];
-        private readonly Socket listener;
-        private readonly int id;
-        private StringBuilder sb;
-
         public StateObject(Socket listener, int id = -1)
         {
-            this.listener = listener;
-            this.id = id;
+            this.Listener = listener;
+            this.Id = id;
             this.Reset();
         }
 
-        public int Id
-        {
-            get
-            {
-                return this.id;
-            }
-        }
-
-        public int BufferSize
-        {
-            get
-            {
-                return Buffer_Size;
-            }
-        }
-
-        public byte[] Buffer
-        {
-            get
-            {
-                return this.buffer;
-            }
-        }
-
-        public Socket Listener
-        {
-            get
-            {
-                return this.listener;
-            }
-        }
+        public int Id { get; private set; }
+        public byte[] Buffer { get; private set; } = new byte[Network.Constants.BufferSize];
+        public Socket Listener { get; private set; }
+        public byte[] Data { get; private set; }
 
         public string Text
         {
             get
             {
-                return this.sb.ToString();
+                return Encoding.UTF8.GetString(this.Data);
             }
         }
 
-        public void Append(string text)
+        public void Append(int size)
         {
-            this.sb.Append(text);
+            byte[] data = new List<byte>(this.Buffer).GetRange(0, size).ToArray();
+            data = Compression.Compressor.DecompressBytes(data);
+
+            if (this.Data != null)
+            {
+                byte[] newData = new byte[this.Data.Length + data.Length];
+                this.Data.CopyTo(newData, 0);
+                data.CopyTo(newData, this.Data.Length);
+            }
+            else
+            {
+                this.Data = new byte[data.Length];
+                Array.Copy(data, this.Data, data.Length);
+            }
         }
 
         public void Reset()
         {
-            this.sb = new StringBuilder();
+            this.Data = null;
+            this.Buffer = new byte[Network.Constants.BufferSize];
         }
     }
 }

@@ -4,12 +4,12 @@ namespace Common.Network
 {
     public interface IStateObject
     {
-        int BufferSize { get; }
         int Id { get; }
         byte[] Buffer { get; }
         Socket Listener { get; }
         string Text { get; }
-        void Append(string text);
+        byte[] Data { get; }
+        void Append(int size);
         void Reset();
     }
 }
