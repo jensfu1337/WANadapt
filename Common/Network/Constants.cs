@@ -13,6 +13,7 @@ namespace Common.Network
         public const ushort PortMax = 49151;
         public const ushort DefaulPort = 8889;
         public const byte MaxClients = 10;
+        public const ushort BufferSize = 1024;
 
         // Settings for ping operations
         public const int TimeOut = 1000;
