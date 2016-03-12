@@ -46,9 +46,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Network\AsyncSocketListener.cs" />
+    <Compile Include="Network\AsyncServerBase.cs" />
+    <Compile Include="Network\SimpleServer.cs" />
     <Compile Include="MainClass.cs" />
-    <Compile Include="Network\IAsyncSocketListener.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
